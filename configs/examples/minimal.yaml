@@ -1,0 +1,34 @@
+# Minimal Kanban Configuration
+# Simple setup with just status and priority labels
+
+version: "1"
+
+organization: ""
+
+repositories:
+  include: ["*"]
+  exclude: []
+
+labels:
+  status:
+    - name: "status: todo"
+      color: "d4d4d4"
+      description: "To be done"
+    - name: "status: doing"
+      color: "fbca04"
+      description: "In progress"
+    - name: "status: done"
+      color: "0e8a16"
+      description: "Completed"
+
+  priority:
+    - name: "priority: high"
+      color: "b60205"
+      description: "High priority"
+    - name: "priority: low"
+      color: "0e8a16"
+      description: "Low priority"
+
+settings:
+  preserve_unknown: true
+  concurrency: 5

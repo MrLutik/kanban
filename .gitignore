@@ -1,0 +1,75 @@
+# Personal/sensitive configuration
+.kanban.yaml
+*.local.yaml
+*.local.yml
+
+# Environment variables
+.env
+.env.*
+*.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups (may contain sensitive data)
+backups/
+
+# Build artifacts
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+coverage.out
+coverage.html
+*.cover
+
+# Go
+vendor/
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+PLAN.md
+COMMANDS.md
+
