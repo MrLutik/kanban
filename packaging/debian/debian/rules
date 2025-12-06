@@ -2,14 +2,16 @@
 
 export DH_VERBOSE = 1
 export CGO_ENABLED = 0
+export GO111MODULE = on
 export GOCACHE = $(CURDIR)/.gocache
-export GOFLAGS = -trimpath -mod=readonly
+export GOFLAGS = -trimpath
 
 %:
 	dh $@
 
 override_dh_auto_build:
 	mkdir -p completions
+	go mod download
 	go build -ldflags="-s -w" -o kanban ./cmd/kanban
 	./kanban completion bash > completions/kanban.bash
 	./kanban completion zsh > completions/_kanban
