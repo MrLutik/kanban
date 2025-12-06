@@ -37,25 +37,33 @@ jobs:
           echo "type=$BRANCH_TYPE" >> $GITHUB_OUTPUT
           echo "desc=$BRANCH_DESC" >> $GITHUB_OUTPUT
 
+      - name: Check if PR exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_EXISTS=$(gh pr list --head "${{ steps.branch.outputs.name }}" --json number --jq 'length')
+          echo "exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.branch.outputs.name }}
-          base: master
-          title: "[${{ steps.branch.outputs.type }}] ${{ steps.branch.outputs.desc }}"
-          body: |
-            ## Summary
-            Automated PR for `${{ steps.branch.outputs.name }}`
+        if: steps.check-pr.outputs.exists == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base master \
+            --head "${{ steps.branch.outputs.name }}" \
+            --title "[${{ steps.branch.outputs.type }}] ${{ steps.branch.outputs.desc }}" \
+            --body "## Summary
+          Automated PR for \`${{ steps.branch.outputs.name }}\`
 
-            ## Type
-            - [x] ${{ steps.branch.outputs.type }}
+          ## Type
+          - [x] ${{ steps.branch.outputs.type }}
 
-            ## Checklist
-            - [ ] Code reviewed
-            - [ ] Tests pass
-            - [ ] Documentation updated (if needed)
-          draft: false
+          ## Checklist
+          - [ ] Code reviewed
+          - [ ] Tests pass
+          - [ ] Documentation updated (if needed)"
 
   # Run tests on all pushes and PRs
   test:
