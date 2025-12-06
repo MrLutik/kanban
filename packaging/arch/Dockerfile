@@ -34,5 +34,5 @@ CMD ["bash", "-c", "\
     sed -i 's|source=(.*)|source=(\"kanban-cli-${VERSION}.tar.gz\")|' PKGBUILD && \
     makepkg -sf --noconfirm && \
     namcap *.pkg.tar.zst 2>&1 || true && \
-    cp *.pkg.tar.zst /output/ \
+    sudo cp *.pkg.tar.zst /output/ \
 "]
