@@ -24,6 +24,7 @@ COPY --chown=builder:builder . /build/kanban-src/
 # Build the package
 CMD ["bash", "-c", "\
     VERSION=${VERSION:-1.0.0} && \
+    VERSION=${VERSION//-/.} && \
     sed -i \"s/pkgver=.*/pkgver=${VERSION}/\" PKGBUILD && \
     cd /build/kanban-src && \
     tar czf /build/kanban-cli-${VERSION}.tar.gz --transform \"s,^,kanban-${VERSION}/,\" \
