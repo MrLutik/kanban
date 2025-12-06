@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -289,11 +290,15 @@ func (db *DB) GetBoardIssues(repoFullName string, status string) ([]BoardIssue, 
 	var issues []BoardIssue
 	for rows.Next() {
 		var i BoardIssue
-		var priority, itype, assignee sql.NullString
-		err := rows.Scan(&i.Repo, &i.Number, &i.Title, &i.Status, &priority, &itype, &assignee,
-			&i.IsBlocked, &i.BlockedTimeHours, &i.AgeHours, &i.CreatedAt, &i.UpdatedAt)
+		var priority, itype, assignee, status sql.NullString
+		var blockedTimeHours, ageHours sql.NullFloat64
+		err := rows.Scan(&i.Repo, &i.Number, &i.Title, &status, &priority, &itype, &assignee,
+			&i.IsBlocked, &blockedTimeHours, &ageHours, &i.CreatedAt, &i.UpdatedAt)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("scan error: %w", err)
+		}
+		if status.Valid {
+			i.Status = status.String
 		}
 		if priority.Valid {
 			i.Priority = priority.String
@@ -303,6 +308,12 @@ func (db *DB) GetBoardIssues(repoFullName string, status string) ([]BoardIssue, 
 		}
 		if assignee.Valid {
 			i.Assignee = assignee.String
+		}
+		if blockedTimeHours.Valid {
+			i.BlockedTimeHours = blockedTimeHours.Float64
+		}
+		if ageHours.Valid {
+			i.AgeHours = ageHours.Float64
 		}
 		issues = append(issues, i)
 	}
