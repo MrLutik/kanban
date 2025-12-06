@@ -1,0 +1,55 @@
+# Maintainer: Yevgeniy <yaievgeniy@gmail.com>
+pkgname=kanban-cli
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="GitHub Kanban workflow CLI tool for managing labels and issues across repositories"
+arch=('x86_64' 'aarch64')
+url="https://github.com/kiracore/kanban"
+license=('MIT')
+depends=('glibc')
+makedepends=('go>=1.21')
+provides=('kanban')
+conflicts=('kanban')
+backup=()
+install=kanban.install
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "kanban-${pkgver}"
+
+    export CGO_ENABLED=0
+    export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
+
+    go build -ldflags="-s -w -X github.com/kiracore/kanban/cmd/kanban/cmd.Version=${pkgver}" \
+        -o kanban ./cmd/kanban
+}
+
+check() {
+    cd "kanban-${pkgver}"
+    go test ./...
+}
+
+package() {
+    cd "kanban-${pkgver}"
+
+    # Install binary
+    install -Dm755 kanban "${pkgdir}/usr/bin/kanban"
+
+    # Install documentation
+    install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+
+    # Install license (create one if it doesn't exist)
+    if [[ -f LICENSE ]]; then
+        install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    fi
+
+    # Install shell completions
+    install -dm755 "${pkgdir}/usr/share/bash-completion/completions"
+    install -dm755 "${pkgdir}/usr/share/zsh/site-functions"
+    install -dm755 "${pkgdir}/usr/share/fish/vendor_completions.d"
+
+    ./kanban completion bash > "${pkgdir}/usr/share/bash-completion/completions/kanban"
+    ./kanban completion zsh > "${pkgdir}/usr/share/zsh/site-functions/_kanban"
+    ./kanban completion fish > "${pkgdir}/usr/share/fish/vendor_completions.d/kanban.fish"
+}

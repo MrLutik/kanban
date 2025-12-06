@@ -1,0 +1,257 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+      - 'feature/**'
+      - 'bugfix/**'
+      - 'hotfix/**'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+
+env:
+  GO_VERSION: '1.23'
+
+jobs:
+  # Automatically create PR for feature/bugfix/hotfix branches
+  create-pr:
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/bugfix/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract branch info
+        id: branch
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          BRANCH_TYPE=$(echo "$BRANCH_NAME" | cut -d'/' -f1)
+          BRANCH_DESC=$(echo "$BRANCH_NAME" | cut -d'/' -f2-)
+          echo "name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "type=$BRANCH_TYPE" >> $GITHUB_OUTPUT
+          echo "desc=$BRANCH_DESC" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.branch.outputs.name }}
+          base: master
+          title: "[${{ steps.branch.outputs.type }}] ${{ steps.branch.outputs.desc }}"
+          body: |
+            ## Summary
+            Automated PR for `${{ steps.branch.outputs.name }}`
+
+            ## Type
+            - [x] ${{ steps.branch.outputs.type }}
+
+            ## Checklist
+            - [ ] Code reviewed
+            - [ ] Tests pass
+            - [ ] Documentation updated (if needed)
+          draft: false
+
+  # Run tests on all pushes and PRs
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.out
+          fail_ci_if_error: false
+
+  # Build binary artifacts
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="0.0.0-${GITHUB_SHA::8}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w -X github.com/kiracore/kanban/cmd/kanban/cmd.Version=${{ steps.version.outputs.version }}" \
+            -o kanban-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/kanban
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kanban-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: kanban-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  # Build packages on merge to master or tag
+  build-packages:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            LAST_TAG=$(git describe --tags --abbrev=0)
+            VERSION="${LAST_TAG#v}-$(git rev-list ${LAST_TAG}..HEAD --count)-g${GITHUB_SHA::8}"
+          else
+            VERSION="0.0.0-${GITHUB_SHA::8}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build AUR package
+        run: |
+          mkdir -p dist/arch
+          docker build -t kanban-arch-builder -f packaging/arch/Dockerfile .
+          docker run --rm \
+            -e VERSION=${{ steps.version.outputs.version }} \
+            -v $(pwd)/dist/arch:/output \
+            kanban-arch-builder
+
+      - name: Build Debian package
+        run: |
+          mkdir -p dist/debian
+          docker build -t kanban-debian-builder -f packaging/debian/Dockerfile .
+          docker run --rm \
+            -e VERSION=${{ steps.version.outputs.version }} \
+            -v $(pwd)/dist/debian:/output \
+            kanban-debian-builder
+
+      - name: Upload AUR package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: dist/arch/*.pkg.tar.zst
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: dist/debian/*.deb
+
+  # Create release on merge to master
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [build, build-packages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version and changelog
+        id: info
+        run: |
+          # Get version
+          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            LAST_TAG=$(git describe --tags --abbrev=0)
+            VERSION="${LAST_TAG#v}-$(git rev-list ${LAST_TAG}..HEAD --count)-g${GITHUB_SHA::8}"
+            CHANGELOG=$(git log --pretty=format:"- %s" ${LAST_TAG}..HEAD)
+          else
+            VERSION="0.0.0-${GITHUB_SHA::8}"
+            CHANGELOG=$(git log --pretty=format:"- %s" -10)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Write changelog to file for multiline support
+          echo "$CHANGELOG" > changelog.txt
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+
+          # Copy binaries
+          for dir in artifacts/kanban-*; do
+            if [ -d "$dir" ]; then
+              cp "$dir"/* release/ 2>/dev/null || true
+            fi
+          done
+
+          # Copy packages
+          cp artifacts/arch-package/*.pkg.tar.zst release/ 2>/dev/null || true
+          cp artifacts/debian-package/*.deb release/ 2>/dev/null || true
+
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.info.outputs.version }}
+          name: Release v${{ steps.info.outputs.version }}
+          body_path: changelog.txt
+          files: release/*
+          draft: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          generate_release_notes: true
