@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/kiracore/kanban/internal/paths"
 	_ "modernc.org/sqlite"
 )
 
@@ -18,10 +19,10 @@ type DB struct {
 	path string
 }
 
-// DefaultDBPath returns the default database path
+// DefaultDBPath returns the default database path.
+// Uses XDG_DATA_HOME/kanban/kanban.db or ~/.local/share/kanban/kanban.db
 func DefaultDBPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".kanban", "kanban.db")
+	return paths.DatabasePath()
 }
 
 // Open opens or creates the database

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kiracore/kanban/internal/paths"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -64,20 +65,31 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Search for config in current directory
+		// Search order:
+		// 1. Current directory (.kanban.yaml) - project-specific config
+		// 2. XDG config dir (config.yaml) - user default config
 		viper.AddConfigPath(".")
+		viper.AddConfigPath(paths.ConfigDir())
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".kanban")
+		viper.SetConfigName(".kanban") // matches .kanban.yaml in current dir
 	}
 
 	// Read environment variables
 	viper.SetEnvPrefix("KANBAN")
 	viper.AutomaticEnv()
 
-	// Read config file
+	// Try to read config file
 	if err := viper.ReadInConfig(); err == nil {
 		if verbose {
 			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		}
+	} else {
+		// If .kanban.yaml not found, try config.yaml in XDG dir
+		viper.SetConfigName("config")
+		if err := viper.ReadInConfig(); err == nil {
+			if verbose {
+				fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+			}
 		}
 	}
 }

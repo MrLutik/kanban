@@ -1,0 +1,8 @@
+kanban-cli (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * XDG Base Directory compliance
+  * Docker-based build system
+  * Shell completions for bash, zsh, fish
+
+ -- Yevgeniy <yaievgeniy@gmail.com>  Fri, 06 Dec 2024 00:00:00 +0000

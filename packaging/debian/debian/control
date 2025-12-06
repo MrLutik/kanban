@@ -1,0 +1,30 @@
+Source: kanban-cli
+Section: devel
+Priority: optional
+Maintainer: Yevgeniy <yaievgeniy@gmail.com>
+Build-Depends: debhelper-compat (= 13), golang-go (>= 2:1.21~)
+Standards-Version: 4.6.2
+Homepage: https://github.com/kiracore/kanban
+Vcs-Browser: https://github.com/kiracore/kanban
+Vcs-Git: https://github.com/kiracore/kanban.git
+Rules-Requires-Root: no
+
+Package: kanban-cli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: kanban
+Description: GitHub Kanban workflow CLI tool
+ Kanban is a CLI tool for applying Kanban methodology to GitHub organizations.
+ It manages labels, workflows, and issue tracking across multiple repositories
+ with a single configuration file.
+ .
+ Features:
+  - Label management and synchronization across repositories
+  - Local SQLite database for offline queries and metrics
+  - Terminal-based kanban board view
+  - Comprehensive metrics with bottleneck detection
+  - Config-driven with YAML presets
+ .
+ XDG-compliant paths:
+  - Config: ~/.config/kanban/config.yaml
+  - Data: ~/.local/share/kanban/kanban.db

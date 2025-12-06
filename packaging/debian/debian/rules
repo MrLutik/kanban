@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export CGO_ENABLED = 0
+export GOCACHE = $(CURDIR)/.gocache
+export GOFLAGS = -trimpath -mod=readonly
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	mkdir -p completions
+	go build -ldflags="-s -w" -o kanban ./cmd/kanban
+	./kanban completion bash > completions/kanban.bash
+	./kanban completion zsh > completions/_kanban
+	./kanban completion fish > completions/kanban.fish
+
+override_dh_auto_install:
+	# Install binary
+	install -D -m 0755 kanban debian/kanban-cli/usr/bin/kanban
+
+	# Install shell completions
+	install -D -m 0644 completions/kanban.bash debian/kanban-cli/usr/share/bash-completion/completions/kanban
+	install -D -m 0644 completions/_kanban debian/kanban-cli/usr/share/zsh/vendor-completions/_kanban
+	install -D -m 0644 completions/kanban.fish debian/kanban-cli/usr/share/fish/vendor_completions.d/kanban.fish
+
+	# Install documentation
+	install -D -m 0644 README.md debian/kanban-cli/usr/share/doc/kanban-cli/README.md
+
+override_dh_auto_test:
+	go test ./...
+
+override_dh_dwz:
+	# Skip dwz for Go binaries
+
+override_dh_strip:
+	# Skip strip for Go binaries (already stripped with -s)
+
+override_dh_auto_clean:
+	rm -f kanban
+	rm -rf completions
+	rm -rf .gocache

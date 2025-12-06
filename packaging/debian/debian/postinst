@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        echo ""
+        echo "Kanban CLI installed successfully!"
+        echo ""
+        echo "XDG-compliant paths:"
+        echo "  Config: ~/.config/kanban/config.yaml"
+        echo "  Data:   ~/.local/share/kanban/kanban.db"
+        echo ""
+        echo "Quick start:"
+        echo "  kanban init --org <your-org> --preset standard"
+        echo "  kanban db init"
+        echo "  kanban sync --org <your-org> --all"
+        echo ""
+        echo "For more information: kanban --help"
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

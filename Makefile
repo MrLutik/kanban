@@ -8,7 +8,7 @@ DOCKER_RUN=docker run --rm -v $(CURDIR):/app -w /app $(GO_IMAGE)
 PREFIX ?= /usr/local
 SYSTEMD_DIR ?= /etc/systemd/system
 
-.PHONY: all build test clean install uninstall install-timer uninstall-timer install-completion uninstall-completion purge docker-build docker-run init mod-init
+.PHONY: all build test clean install uninstall install-timer uninstall-timer install-completion uninstall-completion purge purge-xdg purge-legacy docker-build docker-run init mod-init pkg-arch pkg-debian pkg-all
 
 # Default target
 all: build
@@ -100,9 +100,20 @@ install-completion: build
 uninstall-completion:
 	rm -f /etc/bash_completion.d/$(BINARY_NAME)
 
-# Purge user data (config and database) - USE WITH CAUTION
-purge:
-	@echo "This will remove:"
+# Purge user data (XDG paths) - USE WITH CAUTION
+purge: purge-xdg
+
+purge-xdg:
+	@echo "This will remove XDG data:"
+	@echo "  - Config: ~/.config/kanban/"
+	@echo "  - Data:   ~/.local/share/kanban/"
+	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	rm -rf $(HOME)/.config/kanban
+	rm -rf $(HOME)/.local/share/kanban
+
+# Purge legacy user data (pre-XDG paths)
+purge-legacy:
+	@echo "This will remove legacy data:"
 	@echo "  - Config: ~/.kanban.yaml"
 	@echo "  - Database: ~/.kanban/"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
@@ -143,6 +154,17 @@ deploy-workflow:
 deploy-workflow-dry:
 	./scripts/deploy-workflow.sh --dry-run
 
+# Package building
+pkg-arch:
+	@echo "Building AUR package..."
+	./packaging/arch/build.sh
+
+pkg-debian:
+	@echo "Building Debian package..."
+	./packaging/debian/build.sh
+
+pkg-all: pkg-arch pkg-debian
+
 # Help
 help:
 	@echo "Kanban CLI - Build Targets"
@@ -164,7 +186,14 @@ help:
 	@echo "  uninstall-completion - Remove bash completion"
 	@echo "  install-all        - Install binary + timer + completion"
 	@echo "  uninstall-all      - Remove all installed files"
-	@echo "  purge              - Remove user data (~/.kanban.yaml, ~/.kanban/)"
+	@echo "  purge              - Remove user data (XDG paths)"
+	@echo "  purge-xdg          - Remove XDG data (~/.config/kanban, ~/.local/share/kanban)"
+	@echo "  purge-legacy       - Remove legacy data (~/.kanban.yaml, ~/.kanban/)"
+	@echo ""
+	@echo "Packaging:"
+	@echo "  pkg-arch      - Build AUR package via Docker"
+	@echo "  pkg-debian    - Build Debian package via Docker"
+	@echo "  pkg-all       - Build all packages"
 	@echo ""
 	@echo "Deploy:"
 	@echo "  sync-labels       - Sync labels to all repos"

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kiracore/kanban/internal/db"
+	"github.com/kiracore/kanban/internal/paths"
 	"github.com/spf13/cobra"
 )
 
@@ -115,7 +116,8 @@ var dbBackupCmd = &cobra.Command{
 	Short: "Backup the database",
 	Long: `Creates a backup copy of the database.
 
-If no output path is specified, creates a timestamped backup in ~/.kanban/backups/`,
+If no output path is specified, creates a timestamped backup in the XDG data directory
+(~/.local/share/kanban/backups/ or $XDG_DATA_HOME/kanban/backups/).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, err := db.Open(dbPath)
 		if err != nil {
@@ -126,10 +128,8 @@ If no output path is specified, creates a timestamped backup in ~/.kanban/backup
 		// Generate backup path if not specified
 		dest := backupPath
 		if dest == "" {
-			home, _ := os.UserHomeDir()
-			backupDir := filepath.Join(home, ".kanban", "backups")
 			timestamp := time.Now().Format("20060102-150405")
-			dest = filepath.Join(backupDir, fmt.Sprintf("kanban-%s.db", timestamp))
+			dest = filepath.Join(paths.BackupDir(), fmt.Sprintf("kanban-%s.db", timestamp))
 		}
 
 		if err := database.Backup(dest); err != nil {
@@ -316,7 +316,7 @@ func init() {
 	dbCmd.AddCommand(dbOptimizeCmd)
 
 	// Flags
-	dbCmd.PersistentFlags().StringVar(&dbPath, "db", "", "database path (default ~/.kanban/kanban.db)")
+	dbCmd.PersistentFlags().StringVar(&dbPath, "db", "", "database path (default ~/.local/share/kanban/kanban.db)")
 	dbBackupCmd.Flags().StringVar(&backupPath, "output", "", "backup output path")
 	dbRestoreCmd.Flags().StringVar(&backupPath, "input", "", "backup input path")
 }
