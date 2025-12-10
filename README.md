@@ -345,48 +345,64 @@ settings:
   concurrency: 5
 ```
 
-## Label Schema
+## Label Schema (24 labels)
+
+```
+Status (6):    backlog → ready → in-progress → review → testing → done
+Priority (4):  critical (=blocked) | high | medium | low
+Type (8):      bug | feature | improvement | docs | refactor | chore | test | security
+Size (5):      XS | S | M | L | XL
+Special (1):   needs-triage
+```
 
 ### Status Labels (Kanban Columns)
 
 | Label | Color | Description |
 |-------|-------|-------------|
-| `status: backlog` | Gray | Prioritized but not started |
-| `status: ready` | Blue | Ready to be worked on |
-| `status: in-progress` | Yellow | Actively being worked on |
-| `status: review` | Orange | Waiting for code review |
-| `status: testing` | Purple | Being tested/validated |
-| `status: done` | Green | Completed and merged |
+| `status: backlog` | #d4d4d4 | Prioritized but not started |
+| `status: ready` | #0075ca | Ready to be worked on |
+| `status: in-progress` | #fbca04 | Actively being worked on |
+| `status: review` | #d93f0b | Waiting for code review |
+| `status: testing` | #a371f7 | Being tested/validated |
+| `status: done` | #0e8a16 | Completed and merged |
 
 ### Priority Labels
 
 | Label | Color | Description |
 |-------|-------|-------------|
-| `priority: critical` | Red | Drop everything |
-| `priority: high` | Orange | Next up |
-| `priority: medium` | Yellow | Normal priority |
-| `priority: low` | Green | When time permits |
+| `priority: critical` | #b60205 | Drop everything - blocks release |
+| `priority: high` | #d93f0b | Next up - important for milestone |
+| `priority: medium` | #fbca04 | Normal priority |
+| `priority: low` | #0e8a16 | When time permits |
 
 ### Type Labels
 
 | Label | Color | Description |
 |-------|-------|-------------|
-| `type: bug` | Red | Something is broken |
-| `type: feature` | Cyan | New functionality |
-| `type: improvement` | Light Blue | Enhancement to existing |
-| `type: docs` | Blue | Documentation work |
-| `type: refactor` | Purple | Code quality improvement |
-| `type: chore` | Cream | Maintenance tasks |
+| `type: bug` | #d73a4a | Something is broken |
+| `type: feature` | #a2eeef | New functionality |
+| `type: improvement` | #84b6eb | Enhancement to existing feature |
+| `type: docs` | #0075ca | Documentation work |
+| `type: refactor` | #5319e7 | Code quality improvement |
+| `type: chore` | #fef2c0 | Maintenance tasks |
+| `type: test` | #bfd4f2 | Test coverage improvement |
+| `type: security` | #ee0701 | Security related issue |
 
-### Size Labels (Optional)
+### Size Labels
 
-| Label | Description |
-|-------|-------------|
-| `size: XS` | < 1 hour |
-| `size: S` | 1-4 hours |
-| `size: M` | 1-2 days |
-| `size: L` | 3-5 days |
-| `size: XL` | > 1 week |
+| Label | Color | Description |
+|-------|-------|-------------|
+| `size: XS` | #ededed | < 1 hour |
+| `size: S` | #d4d4d4 | 1-4 hours |
+| `size: M` | #bdbdbd | 1-2 days |
+| `size: L` | #9e9e9e | 3-5 days |
+| `size: XL` | #757575 | > 1 week |
+
+### Special Labels
+
+| Label | Color | Description |
+|-------|-------|-------------|
+| `needs-triage` | #fbca04 | Needs initial review |
 
 ## Requirements
 

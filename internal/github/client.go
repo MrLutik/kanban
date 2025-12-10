@@ -62,6 +62,11 @@ func (c *Client) ListLabels(org, repo string) ([]config.Label, error) {
 		return nil, fmt.Errorf("failed to list labels: %w", err)
 	}
 
+	// Handle empty output (repo has no labels)
+	if len(output) == 0 {
+		return []config.Label{}, nil
+	}
+
 	var ghLabels []ghLabel
 	if err := json.Unmarshal(output, &ghLabels); err != nil {
 		return nil, err

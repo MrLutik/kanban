@@ -169,6 +169,16 @@ func runSync(cmd *cobra.Command, args []string) error {
 				}
 
 				needsSync, _ := database.LabelsNeedSync(dbRepo.ID, names, colors, descriptions)
+
+				// Also check GitHub directly if DB says no sync needed
+				// This catches cases where labels were cached but never actually pushed
+				if !needsSync {
+					ghLabels, err := client.ListLabels(organization, repoName)
+					if err == nil && len(ghLabels) < len(labels) {
+						needsSync = true // GitHub has fewer labels than config
+					}
+				}
+
 				if needsSync {
 					if err := client.SyncLabels(organization, repoName, labels, dryRun); err != nil {
 						mu.Lock()
@@ -177,17 +187,16 @@ func runSync(cmd *cobra.Command, args []string) error {
 						fmt.Fprintf(os.Stderr, "  Labels error: %v\n", err)
 					} else {
 						fmt.Printf("  Labels synced\n")
-					}
-
-					// Sync labels to DB
-					for _, l := range labels {
-						dbLabel := &db.Label{
-							RepoID:      dbRepo.ID,
-							Name:        l.Name,
-							Color:       l.Color,
-							Description: l.Description,
+						// Only sync labels to DB after successful GitHub sync
+						for _, l := range labels {
+							dbLabel := &db.Label{
+								RepoID:      dbRepo.ID,
+								Name:        l.Name,
+								Color:       l.Color,
+								Description: l.Description,
+							}
+							database.UpsertLabel(dbLabel)
 						}
-						database.UpsertLabel(dbLabel)
 					}
 				} else {
 					fmt.Printf("  Labels up-to-date (skipped)\n")
