@@ -202,9 +202,9 @@ jobs:
           name: debian-package
           path: dist/debian/*.deb
 
-  # Create release on merge to master
+  # Create release on merge to master or tag push
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
     needs: [build, build-packages]
     runs-on: ubuntu-latest
     permissions:
@@ -217,8 +217,17 @@ jobs:
       - name: Get version and changelog
         id: info
         run: |
-          # Get version
-          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+          # Get version - use tag directly if this is a tag push
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            # Get changelog from previous tag to this tag
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREV_TAG" ]; then
+              CHANGELOG=$(git log --pretty=format:"- %s" ${PREV_TAG}..HEAD)
+            else
+              CHANGELOG=$(git log --pretty=format:"- %s" -10)
+            fi
+          elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
             LAST_TAG=$(git describe --tags --abbrev=0)
             VERSION="${LAST_TAG#v}-$(git rev-list ${LAST_TAG}..HEAD --count)-g${GITHUB_SHA::8}"
             CHANGELOG=$(git log --pretty=format:"- %s" ${LAST_TAG}..HEAD)
