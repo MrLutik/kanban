@@ -63,6 +63,8 @@ func (c *Client) ListLabels(org, repo string) ([]config.Label, error) {
 	}
 
 	// Handle empty output (repo has no labels)
+	// gh returns empty output or just whitespace when no labels exist
+	output = bytes.TrimSpace(output)
 	if len(output) == 0 {
 		return []config.Label{}, nil
 	}

@@ -174,7 +174,9 @@ func runSync(cmd *cobra.Command, args []string) error {
 				// This catches cases where labels were cached but never actually pushed
 				if !needsSync {
 					ghLabels, err := client.ListLabels(organization, repoName)
-					if err == nil && len(ghLabels) < len(labels) {
+					if err != nil {
+						needsSync = true // On error, assume sync is needed
+					} else if len(ghLabels) < len(labels) {
 						needsSync = true // GitHub has fewer labels than config
 					}
 				}
